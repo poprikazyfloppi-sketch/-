@@ -16,16 +16,6 @@ from aiogram.types import (
     ReplyKeyboardMarkup, KeyboardButton,
     CallbackQuery, Message
 )
-from flask import Flask
-app = Flask(__name__)
-
-@app.route('/')
-def health_check():
-    return "Бот работает! ✅", 200
-
-@app.route('/health')
-def health():
-    return "OK", 200
 from aiogram.enums import ParseMode
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -1948,26 +1938,5 @@ async def main():
     await dp.start_polling(bot)
 
 
-# ... (весь ваш код бота) ...
-
-def run_bot():
-    """Запуск бота в отдельном потоке"""
-    try:
-        asyncio.run(main())  # ваша асинхронная main()
-    except Exception as e:
-        logger.error(f"❌ Ошибка в боте: {e}")
-
 if __name__ == "__main__":
-    import threading
-    import os
-
-    # 1. Запускаем бота в фоновом потоке (daemon=True, чтобы он завершился с основным)
-    bot_thread = threading.Thread(target=run_bot, daemon=True)
-    bot_thread.start()
-    logger.info("✅ Поток бота запущен")
-
-    # 2. Запускаем Flask в ОСНОВНОМ потоке
-    #    Он будет принимать HTTP-запросы и держать порт открытым.
-    port = int(os.environ.get("PORT", 5000))
-    logger.info(f"🚀 Запускаем Flask на порту {port}")
-    app.run(host="0.0.0.0", port=port, debug=False)
+    asyncio.run(main())
