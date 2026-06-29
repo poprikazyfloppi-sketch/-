@@ -1,6 +1,3 @@
-from flask import Flask
-import threading
-import sys
 import asyncio
 import aiosqlite
 import html as html_module
@@ -8,7 +5,10 @@ import httpx
 import logging
 import math
 import os
+import threading  # <-- НОВЫЙ ИМПОРТ
+import sys        # <-- НОВЫЙ ИМПОРТ
 from datetime import datetime
+from flask import Flask  # <-- НОВЫЙ ИМПОРТ
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -21,19 +21,25 @@ from aiogram.types import (
 )
 from aiogram.enums import ParseMode
 
-# --- СОЗДАЁМ FLASK-ПРИЛОЖЕНИЕ ДЛЯ HEALTH CHECKS ---
+# --- НАСТРОЙКА ЛОГИРОВАНИЯ ---
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# --- FLASK ДЛЯ HEALTH CHECKS (чтобы бот не засыпал) ---
 app = Flask(__name__)
 
 @app.route('/')
 def health_check():
-    return "Бот работает!", 200
+    return "Бот работает! ✅", 200
 
 @app.route('/health')
 def health():
     return "OK", 200
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+@app.route('/ping')
+def ping():
+    """Для UptimeRobot и других мониторингов"""
+    return "PONG", 200
 
 TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 ADMIN_ID = int(os.environ["ADMIN_ID"])
@@ -334,16 +340,6 @@ async def _fetch_tgrass_for_uid(user_id: int) -> list:
     except Exception as e:
         logger.warning(f"[BGCheck] Tgrass API error for {user_id}: {e}")
     return []
-
-# --- ЗАПУСК БОТА В ОТДЕЛЬНОМ ПОТОКЕ ---
-def run_bot():
-    print("=== БОТ ЗАПУСКАЕТСЯ ===")
-    sys.stdout.flush()
-    try:
-        asyncio.run(main())
-    except Exception as e:
-        print(f"Ошибка в боте: {e}")
-        sys.stdout.flush()
 
 async def _handle_unsubscription(user_id: int, all_offers: list,
                                   bot_instance, notify_target=None) -> bool:
@@ -1962,15 +1958,18 @@ async def main():
     await dp.start_polling(bot)
 
 
-if __name__ == '__main__':
-    # Запускаем бота в фоновом потоке
-    bot_thread = threading.Thread(target=run_bot)
-    bot_thread.start()
-    print("=== ПОТОК БОТА ЗАПУЩЕН ===")
-    sys.stdout.flush()
+if __name__ == "__main__":
+    logger.info("=== ЗАПУСКАЕМ ОСНОВНОЙ ПОТОК ===")
     
-    # Запускаем Flask-сервер
+    # Запускаем бота в фоновом потоке
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
+    bot_thread.start()
+    logger.info("✅ Поток бота запущен")
+    
+    # Запускаем Flask-сервер (он будет отвечать на HTTP-запросы)
     port = int(os.environ.get('PORT', 5000))
-    print(f"=== ЗАПУСКАЕМ FLASK НА ПОРТУ {port} ===")
-    sys.stdout.flush()
-    app.run(host='0.0.0.0', port=port)
+    logger.info(f"🚀 Запускаем Flask на порту {port}")
+    logger.info(f"🌐 Health check доступен по адресу: http://0.0.0.0:{port}/")
+    
+    # Flask запускается в основном потоке и не даёт Render усыпить бота
+    app.run(host='0.0.0.0', port=port, debug=False)
