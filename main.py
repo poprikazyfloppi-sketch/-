@@ -5,10 +5,7 @@ import httpx
 import logging
 import math
 import os
-import threading
-import sys
 from datetime import datetime
-from flask import Flask
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -21,27 +18,14 @@ from aiogram.types import (
 )
 from aiogram.enums import ParseMode
 
-# --- НАСТРОЙКА ЛОГИРОВАНИЯ ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# --- FLASK ДЛЯ HEALTH CHECKS ---
-app = Flask(__name__)
+TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+ADMIN_ID = int(os.environ["ADMIN_ID"])
+DB_PATH = "bot/referrals.db"
 
-@app.route('/')
-def health_check():
-    return "Бот работает! ✅", 200
-
-@app.route('/health')
-def health():
-    return "OK", 200
-
-@app.route('/ping')
-def ping():
-    return "PONG", 200
-
-# ============================================================
-# bot = Bot(token=TOKEN)
+bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
 class AdminFSM(StatesGroup):
@@ -1952,51 +1936,7 @@ async def main():
     print("=" * 50)
     asyncio.create_task(subscription_checker_loop())
     await dp.start_polling(bot)
-# ============================================================
-# (Все ваши классы: AdminFSM, UserFSM, все функции: init_db, 
-# get_setting, add_user, и все обработчики: @dp.message, @dp.callback_query)
-# ============================================================
 
-# --- ФУНКЦИЯ ЗАПУСКА БОТА ---
-async def main():
-    await init_db()
-    bot_info = await bot.get_me()
-    logger.info("=" * 50)
-    logger.info(f"🚀 БОТ ЗАПУЩЕН!")
-    logger.info(f"👤 Бот: @{bot_info.username}")
-    logger.info(f"👑 Админ ID: {ADMIN_ID}")
-    logger.info("=" * 50)
-    asyncio.create_task(subscription_checker_loop())
-    await dp.start_polling(bot)
 
-# --- ЗАПУСК БОТА В ПОТОКЕ ---
-def run_bot():
-    """Запуск бота в отдельном потоке"""
-    try:
-        asyncio.run(main())
-    except Exception as e:
-        logger.error(f"❌ Ошибка в боте: {e}")
-        import traceback
-        traceback.print_exc()
-
-# ============================================================
-# === ГЛАВНАЯ ТОЧКА ВХОДА ===
-# ============================================================
 if __name__ == "__main__":
-    try:
-        logger.info("=== ЗАПУСКАЕМ ОСНОВНОЙ ПОТОК ===")
-        
-        # Запускаем бота в фоновом потоке
-        bot_thread = threading.Thread(target=run_bot, daemon=True)
-        bot_thread.start()
-        logger.info("✅ Поток бота запущен")
-        
-        # Запускаем Flask-сервер
-        port = int(os.environ.get('PORT', 5000))
-        logger.info(f"🚀 Запускаем Flask на порту {port}")
-        app.run(host='0.0.0.0', port=port, debug=False)
-        
-    except Exception as e:
-        logger.error(f"❌ КРИТИЧЕСКАЯ ОШИБКА: {e}")
-        import traceback
-        traceback.print_exc()
+    asyncio.run(main())
