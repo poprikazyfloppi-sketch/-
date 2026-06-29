@@ -16,6 +16,16 @@ from aiogram.types import (
     ReplyKeyboardMarkup, KeyboardButton,
     CallbackQuery, Message
 )
+from flask import Flask
+app = Flask(__name__)
+
+@app.route('/')
+def health_check():
+    return "Бот работает! ✅", 200
+
+@app.route('/health')
+def health():
+    return "OK", 200
 from aiogram.enums import ParseMode
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
