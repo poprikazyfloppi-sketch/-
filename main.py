@@ -1948,5 +1948,26 @@ async def main():
     await dp.start_polling(bot)
 
 
+# ... (весь ваш код бота) ...
+
+def run_bot():
+    """Запуск бота в отдельном потоке"""
+    try:
+        asyncio.run(main())  # ваша асинхронная main()
+    except Exception as e:
+        logger.error(f"❌ Ошибка в боте: {e}")
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    import threading
+    import os
+
+    # 1. Запускаем бота в фоновом потоке (daemon=True, чтобы он завершился с основным)
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
+    bot_thread.start()
+    logger.info("✅ Поток бота запущен")
+
+    # 2. Запускаем Flask в ОСНОВНОМ потоке
+    #    Он будет принимать HTTP-запросы и держать порт открытым.
+    port = int(os.environ.get("PORT", 5000))
+    logger.info(f"🚀 Запускаем Flask на порту {port}")
+    app.run(host="0.0.0.0", port=port, debug=False)
