@@ -1957,6 +1957,14 @@ async def main():
     asyncio.create_task(subscription_checker_loop())
     await dp.start_polling(bot)
 
+def run_bot():
+    """Запуск бота в отдельном потоке"""
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        logger.error(f"❌ Ошибка в боте: {e}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
     logger.info("=== ЗАПУСКАЕМ ОСНОВНОЙ ПОТОК ===")
