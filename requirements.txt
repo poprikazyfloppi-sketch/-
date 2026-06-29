@@ -1,3 +1,4 @@
+aiosqlite==0.22.1
 blinker==1.9.0
 click==8.4.2
 colorama==0.4.6
